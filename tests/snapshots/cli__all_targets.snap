@@ -1,0 +1,248 @@
+---
+source: tests/cli.rs
+expression: out
+---
+===== .ai_config.toml =====
+[file_filters]
+exclude = ["**/.env", "**/*.pem", "**/secrets/**", "anchored/dir/**"]
+
+===== .aiderignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .aiexclude =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .aiignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .augmentignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .claude/settings.json =====
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "Read(./*.pem)",
+      "Read(./**/*.pem)",
+      "Read(./secrets/**)",
+      "Read(./**/secrets/**)",
+      "Read(./anchored/dir/**)"
+    ]
+  }
+}
+
+===== .clineignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .codeiumignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .continueignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .cursorignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .geminiignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .gooseignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .kilocodeignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .kiroignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .noagents.state =====
+{
+  "version": 1,
+  "targets": {
+    "aider": {
+      "created_file": true
+    },
+    "augment": {
+      "created_file": true
+    },
+    "claude-code": {
+      "entries": [
+        "Read(./.env)",
+        "Read(./**/.env)",
+        "Read(./*.pem)",
+        "Read(./**/*.pem)",
+        "Read(./secrets/**)",
+        "Read(./**/secrets/**)",
+        "Read(./anchored/dir/**)"
+      ],
+      "created_file": true
+    },
+    "cline": {
+      "created_file": true
+    },
+    "continue": {
+      "created_file": true
+    },
+    "cursor": {
+      "created_file": true
+    },
+    "gemini-ca": {
+      "created_file": true
+    },
+    "gemini-cli": {
+      "created_file": true
+    },
+    "goose": {
+      "created_file": true
+    },
+    "jetbrains": {
+      "created_file": true
+    },
+    "kilocode": {
+      "created_file": true
+    },
+    "kiro": {
+      "created_file": true
+    },
+    "qodo": {
+      "entries": [
+        "**/.env",
+        "**/*.pem",
+        "**/secrets/**",
+        "anchored/dir/**"
+      ],
+      "created_file": true
+    },
+    "roo": {
+      "created_file": true
+    },
+    "tabnine": {
+      "created_file": true
+    },
+    "trae": {
+      "created_file": true
+    },
+    "windsurf": {
+      "created_file": true
+    },
+    "zed": {
+      "entries": [
+        "**/.env",
+        "**/*.pem",
+        "**/secrets/**",
+        "anchored/dir/**"
+      ],
+      "created_file": true
+    }
+  }
+}
+
+===== .rooignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .tabnineignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .trae/.ignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
+===== .zed/settings.json =====
+{
+  "private_files": [
+    "**/.env",
+    "**/*.pem",
+    "**/secrets/**",
+    "anchored/dir/**"
+  ]
+}

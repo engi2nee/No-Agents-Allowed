@@ -1,0 +1,28 @@
+[package]
+name = "noagents"
+version = "0.1.0"
+edition = "2024"
+description = "One config to keep every AI coding agent out of your secrets — generates ignore files for all known AI agents."
+license = "MIT"
+repository = "https://github.com/engi2nee/noAgentAllowed"
+keywords = ["ai", "ignore", "cli", "secrets", "agents"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+similar = "2"
+toml_edit = "0.22"
+
+[dev-dependencies]
+assert_cmd = "2"
+insta = "1"
+predicates = "3"
+tempfile = "3"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
