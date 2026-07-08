@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 description = "One config to keep every AI coding agent out of your secrets — generates ignore files for all known AI agents."
 license = "MIT"
-repository = "https://github.com/engi2nee/noAgentAllowed"
+homepage = "https://github.com/engi2nee/No-Agents-Allowed"
+repository = "https://github.com/engi2nee/No-Agents-Allowed"
 keywords = ["ai", "ignore", "cli", "secrets", "agents"]
 categories = ["command-line-utilities", "development-tools"]
 
@@ -26,3 +27,8 @@ tempfile = "3"
 lto = true
 strip = true
 codegen-units = 1
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
