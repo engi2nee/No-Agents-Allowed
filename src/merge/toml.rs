@@ -170,4 +170,57 @@ mod tests {
     fn malformed_toml_errors() {
         assert!(apply(Some("not [ toml"), "t", "k", &[], &[]).is_err());
     }
+
+    #[test]
+    fn errors_when_key_is_not_array() {
+        let existing = "[file_filters]\nexclude = \"oops\"\n";
+        assert!(
+            apply(
+                Some(existing),
+                "file_filters",
+                "exclude",
+                &[],
+                &strs(&["x"])
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn errors_when_table_slot_is_not_table() {
+        let existing = "file_filters = 42\n";
+        assert!(
+            apply(
+                Some(existing),
+                "file_filters",
+                "exclude",
+                &[],
+                &strs(&["x"])
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn idempotent_apply_with_state() {
+        let m1 = apply(None, "file_filters", "exclude", &[], &strs(&["a", "b"])).unwrap();
+        let m2 = apply(
+            Some(&m1.content),
+            "file_filters",
+            "exclude",
+            &m1.owned,
+            &strs(&["a", "b"]),
+        )
+        .unwrap();
+        assert_eq!(m1.content, m2.content);
+    }
+
+    #[test]
+    fn remove_missing_table_is_noop() {
+        let existing = "[other]\nx = 1\n";
+        let out = remove(existing, "file_filters", "exclude", &strs(&["x"]))
+            .unwrap()
+            .unwrap();
+        assert_eq!(out, existing);
+    }
 }

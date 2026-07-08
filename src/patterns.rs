@@ -153,4 +153,40 @@ mod tests {
         assert_eq!(to_glob(&parse("/secrets/")).unwrap(), "secrets/**");
         assert!(to_glob(&parse("!.env.example")).is_none());
     }
+
+    #[test]
+    fn interior_slash_is_anchored() {
+        // gitignore: a slash anywhere but the trailing position anchors it
+        let p = parse("a/b/*.key");
+        assert!(p.anchored);
+        assert_eq!(to_claude_deny(&p), vec!["Read(./a/b/*.key)"]);
+        assert_eq!(to_glob(&p).unwrap(), "a/b/*.key");
+    }
+
+    #[test]
+    fn double_star_passes_through() {
+        let p = parse("**/build");
+        assert!(p.anchored, "contains slash");
+        assert_eq!(to_glob(&p).unwrap(), "**/build");
+        assert_eq!(to_claude_deny(&p), vec!["Read(./**/build)"]);
+    }
+
+    #[test]
+    fn whitespace_only_and_tabs_skipped() {
+        assert!(Pattern::parse("\t").is_none());
+        assert!(Pattern::parse("  \t  ").is_none());
+    }
+
+    #[test]
+    fn trims_surrounding_whitespace() {
+        let p = parse("  .env  ");
+        assert_eq!(p.body, ".env");
+        assert_eq!(p.raw, ".env");
+    }
+
+    #[test]
+    fn anchored_dir_single_entry_for_claude() {
+        // leading-slash dir must not get the extra **/ form
+        assert_eq!(to_claude_deny(&parse("/build/")), vec!["Read(./build/**)"]);
+    }
 }

@@ -345,6 +345,238 @@ fn snapshot_all_rendered_outputs() {
     insta::assert_snapshot!("all_targets", out);
 }
 
+#[test]
+fn status_reports_in_sync_stale_and_missing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    init_and_generate(root);
+
+    // fresh generate → everything in-sync
+    noagents(root)
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("in-sync").and(predicate::str::contains("stale").not()));
+
+    // delete one file → missing; tamper another → stale
+    fs::remove_file(root.join(".aiderignore")).unwrap();
+    let mut cursor = fs::read_to_string(root.join(".cursorignore")).unwrap();
+    cursor = cursor.replace(".env", ".tampered");
+    fs::write(root.join(".cursorignore"), cursor).unwrap();
+
+    noagents(root).arg("status").assert().success().stdout(
+        predicate::str::contains("missing")
+            .and(predicate::str::contains("stale"))
+            .and(predicate::str::contains("aider"))
+            .and(predicate::str::contains("cursor")),
+    );
+    // status never changes exit code, even with drift
+}
+
+#[test]
+fn list_shows_targets_and_presence() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    noagents(root).arg("init").assert().success();
+    noagents(root)
+        .args(["generate", "--only", "cursor"])
+        .assert()
+        .success();
+
+    noagents(root).arg("list").assert().success().stdout(
+        predicate::str::contains("claude-code")
+            .and(predicate::str::contains(".cursorignore"))
+            .and(predicate::str::contains("copilot"))
+            .and(predicate::str::contains("advisory")),
+    );
+}
+
+#[test]
+fn add_multiple_patterns_reach_every_family() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    fs::write(root.join(".noagents"), "seed\n").unwrap();
+    noagents(root).arg("generate").assert().success();
+
+    noagents(root)
+        .args(["add", "vault/", "*.token"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("added 2 pattern(s)"));
+
+    // line family
+    assert!(read(root, ".cursorignore").contains("vault/"));
+    assert!(read(root, ".cursorignore").contains("*.token"));
+    // json family (Claude deny + Zed globs)
+    let claude = read(root, ".claude/settings.json");
+    assert!(claude.contains("Read(./vault/**)"));
+    assert!(claude.contains("Read(./*.token)"));
+    let zed = read(root, ".zed/settings.json");
+    assert!(zed.contains("**/vault/**"));
+    assert!(zed.contains("**/*.token"));
+    // toml family
+    let qodo = read(root, ".ai_config.toml");
+    assert!(qodo.contains("**/vault/**"));
+    assert!(qodo.contains("**/*.token"));
+}
+
+#[test]
+fn add_invalid_pattern_exits_2() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    noagents(root).arg("init").assert().success();
+    noagents(root).args(["add", "   "]).assert().code(2);
+    // a comment-only token is not a real pattern
+    noagents(root).args(["add", "# nope"]).assert().code(2);
+}
+
+#[test]
+fn add_without_config_exits_2() {
+    let tmp = tempfile::tempdir().unwrap();
+    noagents(tmp.path())
+        .args(["add", ".env"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("noagents init"));
+}
+
+#[test]
+fn corrupt_state_file_exits_1() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    noagents(root).arg("init").assert().success();
+    fs::write(root.join(".noagents.state"), "{ not json").unwrap();
+    noagents(root)
+        .arg("generate")
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("corrupted"));
+}
+
+#[test]
+fn corrupt_managed_block_skips_target_not_run() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    noagents(root).arg("init").assert().success();
+    // only the start marker present → corrupted
+    fs::write(
+        root.join(".cursorignore"),
+        "# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>\n.env\n",
+    )
+    .unwrap();
+
+    noagents(root)
+        .arg("generate")
+        .assert()
+        .success() // other targets still generated
+        .stderr(predicate::str::contains("skipped").and(predicate::str::contains("cursor")));
+    // sibling target unaffected
+    assert!(read(root, ".aiderignore").contains(".env"));
+}
+
+#[test]
+fn aiexclude_drops_negations_but_keeps_rest() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    fs::write(root.join(".noagents"), ".env\n!.env.example\nsecrets/\n").unwrap();
+    noagents(root)
+        .arg("generate")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("negated pattern"));
+
+    let aiexclude = read(root, ".aiexclude");
+    assert!(aiexclude.contains(".env"));
+    assert!(aiexclude.contains("secrets/"));
+    assert!(!aiexclude.contains("!.env.example"));
+    // but a negation-supporting target keeps it
+    assert!(read(root, ".cursorignore").contains("!.env.example"));
+}
+
+#[test]
+fn qodo_preserves_user_toml_comments() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    fs::write(root.join(".noagents"), ".env\n").unwrap();
+    let user_toml = "# my qodo config\n[file_filters]\ninclude = [\"src/**\"]\n";
+    fs::write(root.join(".ai_config.toml"), user_toml).unwrap();
+
+    noagents(root).arg("generate").assert().success();
+    let out = read(root, ".ai_config.toml");
+    assert!(out.contains("# my qodo config"), "user comment kept");
+    assert!(out.contains("include = [\"src/**\"]"), "user key kept");
+    assert!(out.contains("**/.env"), "our exclude added");
+}
+
+#[test]
+fn cursor_index_is_opt_in_only() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    init_and_generate(root);
+    assert!(!root.join(".cursorindexingignore").exists());
+
+    noagents(root)
+        .args(["generate", "--only", "cursor-index"])
+        .assert()
+        .success();
+    assert!(root.join(".cursorindexingignore").is_file());
+}
+
+#[test]
+fn root_flag_targets_other_directory() {
+    let tmp = tempfile::tempdir().unwrap();
+    let outer = tmp.path();
+    let proj = outer.join("proj");
+    fs::create_dir_all(&proj).unwrap();
+    fs::write(proj.join(".noagents"), ".env\n").unwrap();
+
+    // run from outer, point --root at proj
+    noagents(outer)
+        .args(["generate", "--root"])
+        .arg(&proj)
+        .assert()
+        .success();
+    assert!(proj.join(".cursorignore").is_file());
+    assert!(!outer.join(".cursorignore").exists());
+}
+
+#[test]
+fn line_target_preserves_content_before_and_after_block() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    fs::write(root.join(".noagents"), ".env\n").unwrap();
+    // pre-existing file with content the block will land between/around
+    fs::write(root.join(".cursorignore"), "top-rule\n").unwrap();
+    noagents(root).arg("generate").assert().success();
+
+    // append a trailing user rule after the managed block, then regenerate
+    let mut c = fs::read_to_string(root.join(".cursorignore")).unwrap();
+    c.push_str("bottom-rule\n");
+    fs::write(root.join(".cursorignore"), &c).unwrap();
+
+    fs::write(root.join(".noagents"), ".env\nnewrule\n").unwrap();
+    noagents(root).arg("generate").assert().success();
+
+    let out = read(root, ".cursorignore");
+    assert!(out.starts_with("top-rule\n"));
+    assert!(out.trim_end().ends_with("bottom-rule"));
+    assert!(out.contains("newrule"));
+}
+
+#[test]
+fn check_quiet_still_reports_drift_lines() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    init_and_generate(root);
+    fs::remove_file(root.join(".cursorignore")).unwrap();
+
+    noagents(root)
+        .args(["check", "--quiet"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("DRIFT: cursor"));
+}
+
 fn walk(dir: &Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     for entry in fs::read_dir(dir).unwrap() {

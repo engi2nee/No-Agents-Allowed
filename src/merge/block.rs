@@ -199,4 +199,41 @@ mod tests {
     fn remove_without_block_is_noop() {
         assert_eq!(remove("plain\n").unwrap().unwrap(), "plain\n");
     }
+
+    #[test]
+    fn remove_keeps_content_before_and_after_block() {
+        let text = apply(Some("head\n"), &lines(&[".env"])).unwrap();
+        let text = format!("{text}tail\n");
+        let out = remove(&text).unwrap().unwrap();
+        assert_eq!(out, "head\ntail\n");
+    }
+
+    #[test]
+    fn replace_grows_and_shrinks_body() {
+        let a = apply(Some("u\n"), &lines(&["one", "two", "three"])).unwrap();
+        let b = apply(Some(&a), &lines(&["x"])).unwrap();
+        assert_eq!(b, format!("u\n\n{START}\nx\n{END}\n"));
+        let c = apply(Some(&b), &lines(&["p", "q"])).unwrap();
+        assert_eq!(c, format!("u\n\n{START}\np\nq\n{END}\n"));
+    }
+
+    #[test]
+    fn empty_body_still_writes_markers() {
+        let out = apply(None, &[]).unwrap();
+        assert_eq!(out, format!("{START}\n{END}\n"));
+    }
+
+    #[test]
+    fn end_before_start_errors() {
+        let text = format!("{END}\nstuff\n{START}\n");
+        assert!(apply(Some(&text), &lines(&["x"])).is_err());
+    }
+
+    #[test]
+    fn only_first_marker_pair_is_used() {
+        // a second START inside is treated as block content, not a new block
+        let text = format!("{START}\nold\n{START}\nmore\n{END}\ntail\n");
+        let out = apply(Some(&text), &lines(&["new"])).unwrap();
+        assert_eq!(out, format!("{START}\nnew\n{END}\ntail\n"));
+    }
 }

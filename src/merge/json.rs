@@ -227,4 +227,51 @@ mod tests {
             .unwrap();
         assert_eq!(out, existing);
     }
+
+    #[test]
+    fn errors_when_target_key_is_not_array() {
+        let existing = r#"{"permissions": {"deny": "oops"}}"#;
+        assert!(apply(Some(existing), PTR, &[], &strs(&["Read(./x)"])).is_err());
+    }
+
+    #[test]
+    fn errors_when_parent_is_not_object() {
+        let existing = r#"{"permissions": 42}"#;
+        assert!(apply(Some(existing), PTR, &[], &strs(&["Read(./x)"])).is_err());
+    }
+
+    #[test]
+    fn errors_when_top_level_not_object() {
+        assert!(apply(Some("[1,2,3]"), PTR, &[], &[]).is_err());
+    }
+
+    #[test]
+    fn single_segment_pointer_works() {
+        let ptr: &[&str] = &["private_files"];
+        let m = apply(None, ptr, &[], &strs(&["**/.env"])).unwrap();
+        let v: Value = serde_json::from_str(&m.content).unwrap();
+        assert_eq!(v["private_files"][0], "**/.env");
+        assert!(remove(&m.content, ptr, &m.owned).unwrap().is_none());
+    }
+
+    #[test]
+    fn idempotent_apply_with_state() {
+        let m1 = apply(None, PTR, &[], &strs(&["Read(./a)", "Read(./b)"])).unwrap();
+        let m2 = apply(
+            Some(&m1.content),
+            PTR,
+            &m1.owned,
+            &strs(&["Read(./a)", "Read(./b)"]),
+        )
+        .unwrap();
+        assert_eq!(m1.content, m2.content);
+        assert_eq!(m1.owned, m2.owned);
+    }
+
+    #[test]
+    fn output_ends_with_single_newline() {
+        let m = apply(None, PTR, &[], &strs(&["Read(./x)"])).unwrap();
+        assert!(m.content.ends_with("}\n"));
+        assert!(!m.content.ends_with("\n\n"));
+    }
 }
