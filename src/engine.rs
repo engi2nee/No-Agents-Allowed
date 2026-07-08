@@ -175,9 +175,17 @@ pub fn generate(opts: &RunOpts) -> Result<()> {
                 Outcome::Updated
             }
         } else {
-            if let Some(parent) = path.parent() {
+            if let Some(parent) = path.parent()
+                && !parent.as_os_str().is_empty()
+                && !parent.is_dir()
+            {
                 std::fs::create_dir_all(parent)
                     .with_context(|| format!("cannot create {}", parent.display()))?;
+                // Only true for nested targets (.zed/, .trae/, .claude/) whose
+                // dir did not already exist — so `remove` may prune it.
+                if parent != opts.root {
+                    entry.created_dir = true;
+                }
             }
             std::fs::write(&path, &new_content)
                 .with_context(|| format!("cannot write {}", path.display()))?;
@@ -212,9 +220,32 @@ pub fn generate(opts: &RunOpts) -> Result<()> {
     Ok(())
 }
 
+/// The set of structured entries to strip for a target: everything recorded
+/// in state, plus everything the current `.noagents` would render. The union
+/// lets `remove` clean up even if `.noagents.state` was deleted (as long as
+/// the config still describes the same patterns).
+fn removal_set(spec: &TargetSpec, cfg: Option<&Config>, entry: &StateEntry) -> Vec<String> {
+    let mut set = entry.entries.clone();
+    if let Some(cfg) = cfg {
+        let recomputed = match spec.strategy {
+            Strategy::JsonArray { render, .. } => render_entries(&cfg.patterns, render),
+            Strategy::TomlList { .. } => render_entries(&cfg.patterns, JsonRender::Globs),
+            _ => vec![],
+        };
+        for e in recomputed {
+            if !set.contains(&e) {
+                set.push(e);
+            }
+        }
+    }
+    set
+}
+
 pub fn remove(opts: &RunOpts) -> Result<()> {
     let specs = selected(&opts.only, &opts.exclude)?;
     let mut state = State::load(&opts.root)?;
+    // Config is optional here: `remove` must work even after `.noagents` is gone.
+    let cfg = config::load(&opts.root).ok();
 
     for spec in &specs {
         let Some(rel) = spec.rel_path else { continue };
@@ -228,10 +259,20 @@ pub fn remove(opts: &RunOpts) -> Result<()> {
         let remaining = match spec.strategy {
             Strategy::LineBlock { .. } => block::remove(&existing)?,
             Strategy::JsonArray { pointer, .. } => {
-                json::remove(&existing, pointer, &entry.entries)?
+                let set = removal_set(spec, cfg.as_ref(), &entry);
+                if set.is_empty() {
+                    Some(existing.clone()) // nothing of ours: leave the file untouched
+                } else {
+                    json::remove(&existing, pointer, &set)?
+                }
             }
             Strategy::TomlList { table, key } => {
-                toml::remove(&existing, table, key, &entry.entries)?
+                let set = removal_set(spec, cfg.as_ref(), &entry);
+                if set.is_empty() {
+                    Some(existing.clone())
+                } else {
+                    toml::remove(&existing, table, key, &set)?
+                }
             }
             Strategy::Advisory { .. } => continue,
         };
@@ -254,9 +295,8 @@ pub fn remove(opts: &RunOpts) -> Result<()> {
                     if !opts.dry_run {
                         std::fs::remove_file(&path)
                             .with_context(|| format!("cannot remove {}", path.display()))?;
-                        // Drop the parent dir too if the file was the only
-                        // thing in it (fails when non-empty; that's fine).
-                        if rel.contains('/')
+                        // Prune the parent dir only if noagents created it.
+                        if entry.created_dir
                             && let Some(parent) = path.parent()
                         {
                             let _ = std::fs::remove_dir(parent);

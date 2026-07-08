@@ -170,6 +170,61 @@ fn remove_restores_pre_existing_content() {
 }
 
 #[test]
+fn remove_preserves_pre_existing_empty_user_dir() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    // User created an empty .zed/ but no settings file.
+    fs::create_dir_all(root.join(".zed")).unwrap();
+    init_and_generate(root);
+    assert!(root.join(".zed/settings.json").is_file());
+
+    noagents(root).arg("remove").assert().success();
+    // File we created is gone, but the directory the user made stays.
+    assert!(!root.join(".zed/settings.json").exists());
+    assert!(root.join(".zed").is_dir(), "user's dir must survive");
+}
+
+#[test]
+fn remove_works_after_state_file_deleted() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    fs::create_dir_all(root.join(".claude")).unwrap();
+    fs::write(root.join(".claude/settings.json"), r#"{"model": "opus"}"#).unwrap();
+    init_and_generate(root);
+    assert!(read(root, ".claude/settings.json").contains("Read("));
+
+    // Simulate the sidecar being lost (e.g. not committed / deleted).
+    fs::remove_file(root.join(".noagents.state")).unwrap();
+
+    noagents(root).arg("remove").assert().success();
+    let claude = read(root, ".claude/settings.json");
+    assert!(
+        !claude.contains("Read("),
+        "our entries stripped via config fallback"
+    );
+    assert!(claude.contains("\"model\""), "user content preserved");
+}
+
+#[test]
+fn remove_leaves_untouched_structured_file_unchanged() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    noagents(root).arg("init").assert().success();
+    // Only generate line targets, so no entries land in Claude's settings.
+    noagents(root)
+        .args(["generate", "--only", "cursor"])
+        .assert()
+        .success();
+    let original = "{\n  \"model\": \"opus\"\n}\n";
+    fs::create_dir_all(root.join(".claude")).unwrap();
+    fs::write(root.join(".claude/settings.json"), original).unwrap();
+
+    noagents(root).arg("remove").assert().success();
+    // Claude file had none of our entries: byte-identical, no reformat churn.
+    assert_eq!(read(root, ".claude/settings.json"), original);
+}
+
+#[test]
 fn check_detects_drift() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();

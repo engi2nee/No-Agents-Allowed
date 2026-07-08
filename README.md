@@ -84,6 +84,9 @@ Common flags: `--only cursor,aider` · `--exclude zed` · `--dry-run` (unified d
 - **Negations (`!pattern`)** are supported by most line targets, but skipped (with a warning) for `.aiexclude`, Claude Code, Zed, and Qodo — those formats have no negation concept.
 - **Ignore files are not a security boundary.** Most tools document them as best-effort; bypass bugs happen. Treat `noagents` as defense-in-depth: it makes agents *far less likely* to read secrets, not incapable of it. Real secrets belong outside the repo or encrypted.
 - Some targets only affect *indexing* (noted above); the agent may still open a file if explicitly pointed at it.
+- **Commit `.noagents.state`.** It records which entries noagents added to JSON/TOML settings files. `remove` still cleans up from your current `.noagents` if the state file is lost, but if you *also* changed patterns since the last `generate`, previously-added entries can only be cleaned while the state file exists.
+- **Structured files get canonically formatted.** On first merge, `.claude/settings.json` and `.zed/settings.json` are rewritten with 2-space indentation (`.ai_config.toml` keeps its formatting via `toml_edit`). This is a one-time diff; subsequent runs are stable. Files containing `//` comments (JSONC) are skipped with a warning, never rewritten.
+- `remove` restores your original content but normalizes files to end with a single trailing newline.
 
 ## Development
 

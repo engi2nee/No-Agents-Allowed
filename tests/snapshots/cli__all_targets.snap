@@ -148,7 +148,8 @@ secrets/
         "Read(./**/secrets/**)",
         "Read(./anchored/dir/**)"
       ],
-      "created_file": true
+      "created_file": true,
+      "created_dir": true
     },
     "cline": {
       "created_file": true
@@ -193,7 +194,8 @@ secrets/
       "created_file": true
     },
     "trae": {
-      "created_file": true
+      "created_file": true,
+      "created_dir": true
     },
     "windsurf": {
       "created_file": true
@@ -205,7 +207,8 @@ secrets/
         "**/secrets/**",
         "anchored/dir/**"
       ],
-      "created_file": true
+      "created_file": true,
+      "created_dir": true
     }
   }
 }

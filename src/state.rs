@@ -21,6 +21,10 @@ pub struct StateEntry {
     /// True when noagents created the target file from scratch.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub created_file: bool,
+    /// True when noagents created the target's parent directory (e.g. `.zed/`,
+    /// `.trae/`). Only such directories are removed on `remove`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub created_dir: bool,
 }
 
 impl State {
@@ -58,7 +62,7 @@ impl State {
     }
 
     pub fn set_entry(&mut self, id: &str, entry: StateEntry) {
-        if entry.entries.is_empty() && !entry.created_file {
+        if entry.entries.is_empty() && !entry.created_file && !entry.created_dir {
             self.targets.remove(id);
         } else {
             self.targets.insert(id.to_string(), entry);
