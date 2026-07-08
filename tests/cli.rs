@@ -338,7 +338,9 @@ fn snapshot_all_rendered_outputs() {
     files.sort();
     for f in &files {
         let rel = f.strip_prefix(root).unwrap();
-        out.push_str(&format!("===== {} =====\n", rel.display()));
+        // Normalize separators so the snapshot is stable across OSes.
+        let rel = rel.to_string_lossy().replace('\\', "/");
+        out.push_str(&format!("===== {rel} =====\n"));
         out.push_str(&fs::read_to_string(f).unwrap());
         out.push('\n');
     }
