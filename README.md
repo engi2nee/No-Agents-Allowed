@@ -76,6 +76,7 @@ Common flags: `--only cursor,aider` · `--exclude zed` · `--dry-run` (unified d
 | `windsurf` | Windsurf | `.codeiumignore` | |
 | `aider` | Aider | `.aiderignore` | |
 | `jetbrains` | JetBrains AI / Junie | `.aiignore` | enable in IDE settings |
+| `agentignore` | Cross-tool convention | `.agentignore` | emerging vendor-neutral standard (gitignore syntax) |
 | `gemini-ca` | Gemini Code Assist | `.aiexclude` | no `!` negation — such lines are skipped |
 | `gemini-cli` | Gemini CLI | `.geminiignore` | |
 | `continue` | Continue.dev | `.continueignore` | indexing only |
@@ -90,8 +91,13 @@ Common flags: `--only cursor,aider` · `--exclude zed` · `--dry-run` (unified d
 | `claude-code` | Claude Code | `.claude/settings.json` | `permissions.deny` `Read(...)` rules — enforced permission boundary |
 | `zed` | Zed | `.zed/settings.json` | `private_files` globs; JSONC files with comments are skipped with a warning |
 | `qodo` | Qodo | `.ai_config.toml` | `[file_filters] exclude` |
-| `copilot` | GitHub Copilot | — | advisory: configure Content Exclusion in GitHub settings; not enforced in agent mode/CLI |
-| `codex` | OpenAI Codex CLI | — | advisory: no ignore-file support exists |
+
+### Advisory-only (no ignore file exists to generate)
+
+These tools have no repo-level ignore file as of mid-2026, so noagents can't write one — during `generate` it prints guidance instead:
+
+- **GitHub Copilot** (`copilot`) — exclusion is configured through Content Exclusion in GitHub repo/org settings, not a file; and it doesn't apply to Copilot agent mode/CLI.
+- **OpenAI Codex CLI** (`codex`) — no ignore-file support ([open request](https://github.com/openai/codex/issues/24993)); it only honors `.gitignore` indirectly.
 
 ## Caveats
 

@@ -2,6 +2,15 @@
 source: tests/cli.rs
 expression: out
 ---
+===== .agentignore =====
+# >>> noagents managed — DO NOT EDIT; run `noagents generate` >>>
+.env
+!.env.example
+*.pem
+secrets/
+/anchored/dir/
+# <<< noagents managed <<<
+
 ===== .ai_config.toml =====
 [file_filters]
 exclude = ["**/.env", "**/*.pem", "**/secrets/**", "anchored/dir/**"]
@@ -132,6 +141,9 @@ secrets/
 {
   "version": 1,
   "targets": {
+    "agentignore": {
+      "created_file": true
+    },
     "aider": {
       "created_file": true
     },

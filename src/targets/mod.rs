@@ -68,6 +68,7 @@ pub static TARGETS: &[TargetSpec] = &[
         },
         ..line("gemini-ca", "Gemini Code Assist", ".aiexclude")
     },
+    line("agentignore", "Cross-tool .agentignore", ".agentignore"),
     line("gemini-cli", "Gemini CLI", ".geminiignore"),
     line("continue", "Continue.dev", ".continueignore"),
     line("cline", "Cline", ".clineignore"),

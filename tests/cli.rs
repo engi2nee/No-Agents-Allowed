@@ -30,6 +30,7 @@ fn init_then_generate_creates_all_default_files() {
         ".aiderignore",
         ".aiignore",
         ".aiexclude",
+        ".agentignore",
         ".geminiignore",
         ".continueignore",
         ".clineignore",
