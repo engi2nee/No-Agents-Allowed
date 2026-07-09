@@ -97,7 +97,22 @@ Common flags: `--only cursor,aider` · `--exclude zed` · `--dry-run` (unified d
 These tools have no repo-level ignore file as of mid-2026, so noagents can't write one — during `generate` it prints guidance instead:
 
 - **GitHub Copilot** (`copilot`) — exclusion is configured through Content Exclusion in GitHub repo/org settings, not a file; and it doesn't apply to Copilot agent mode/CLI.
-- **OpenAI Codex CLI** (`codex`) — no ignore-file support ([open request](https://github.com/openai/codex/issues/24993)); it only honors `.gitignore` indirectly.
+- **OpenAI Codex CLI** (`codex`) — no repo-level ignore file ([feature request](https://github.com/openai/codex/issues/2847)); it only honors `.gitignore` indirectly. The reliable workaround ([discussion](https://github.com/openai/codex/discussions/5523)) is a **sandbox permission profile** in your global `~/.codex/config.toml`, which denies file access at the OS level rather than relying on a discovery hint:
+
+  ```toml
+  default_permissions = "safe-workspace"
+
+  [permissions.safe-workspace.filesystem]
+  ".env" = "deny"
+  ".env.*" = "deny"
+  "**/secrets/**" = "deny"
+  "**/*.pem" = "deny"
+  "**/*.key" = "deny"
+  "~/.ssh" = "deny"
+  "~/.aws/credentials" = "deny"
+  ```
+
+  noagents does **not** generate this — it's a global, user-level file affecting every project, and setting `default_permissions` changes Codex's behavior everywhere, so it's yours to manage deliberately. (Avoid `danger-full-access`, which removes the sandbox boundary entirely.)
 
 ## Caveats
 

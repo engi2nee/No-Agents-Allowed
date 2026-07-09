@@ -125,8 +125,9 @@ pub static TARGETS: &[TargetSpec] = &[
         name: "OpenAI Codex CLI",
         rel_path: None,
         strategy: Strategy::Advisory {
-            message: "OpenAI Codex CLI has no ignore-file support; protect secrets via its \
-                      sandbox config (~/.codex/config.toml) or keep them outside the workspace.",
+            message: "OpenAI Codex CLI has no ignore file; deny paths at the OS level via a \
+                      sandbox permission profile in ~/.codex/config.toml (see README). \
+                      Tracking: github.com/openai/codex/issues/2847",
         },
         default_enabled: true,
     },
