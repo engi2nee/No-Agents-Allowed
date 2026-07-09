@@ -1,6 +1,6 @@
 [package]
 name = "noagents"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "One config to keep every AI coding agent out of your secrets — generates ignore files for all known AI agents."
 license = "MIT"
