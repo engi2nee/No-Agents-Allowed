@@ -15,11 +15,25 @@ Each AI agent invents its own ignore mechanism. Maintaining `.cursorignore`, `.c
 
 ## Install
 
+**Homebrew** (macOS / Linux):
+
+```console
+brew install engi2nee/noagents/noagents
+```
+
+**Shell installer** (prebuilt binary, no toolchain needed):
+
+```console
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/engi2nee/No-Agents-Allowed/releases/latest/download/noagents-installer.sh | sh
+```
+
+**Cargo** (builds from source):
+
 ```console
 cargo install noagents
 ```
 
-Prebuilt binaries, Homebrew, and a curl installer are planned.
+**Prebuilt binaries** for macOS (Apple Silicon / Intel), Linux (x86-64 / ARM64), and Windows are attached to every [GitHub release](https://github.com/engi2nee/No-Agents-Allowed/releases/latest) — download, extract, and put `noagents` on your `PATH`.
 
 ## Usage
 
